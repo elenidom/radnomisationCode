@@ -1,0 +1,36 @@
+# a function that keeps in the variable 'exposure_stage_g2' a number between 0-11,
+# depenting on the number of antibiotics prescriptions in the year before the index date and
+# only for patients that were currently exposed to antibiotics
+
+splines_countab <- function(x){
+  
+  x$exposure_stage_g2 <- 0
+  x$exposure_stage_g2 <- ifelse(x$exposure_stage == 0, 0, x$exposure_stage_g2)
+  x$exposure_stage_g2 <- ifelse(x$exposure_stage == 1, 1, x$exposure_stage_g2)
+  
+  for(i in 1:10){
+    x$exposure_stage_g2 <- ifelse(x$countab_yb1 == i & x$exposure_stage==2, i+1, x$exposure_stage_g2)
+  }
+  
+  x$exposure_stage_g2 <- as.factor(x$exposure_stage_g2)
+  return(x)
+}
+
+# this function takes as arguments a Cox model and a specific cancer type and
+# returns a splines regression graph 
+
+splines_plot <- function(model, cancertype){
+  tempcoef <- model$coef
+  y <- exp(tempcoef[2:11])
+  x <- 1:10
+  
+  # add smooth line
+  library(MASS)
+  lo <- loess(y ~ x)
+  
+  plot(x, y, ylab = "Hazard Ratio", xlab = "prescriptions number")
+  
+  x1 <- seq(min(x), max(x), (max(x) - min(x)) / 1000)
+  lines(x1, predict(lo, x1), col = "red", lwd = 2)
+  title(cancertype)
+}
