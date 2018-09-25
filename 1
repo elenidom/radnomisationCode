@@ -1,0 +1,81 @@
+#######################################################################################
+# DISSERTATION PROJECT
+# ELENI DOMZARIDOU
+# UNIVERSITY OF MANCHESTER
+# SUMMER 2018 - citylabs
+#######################################################################################
+
+# function that returns an imputed dataset
+
+imp.dataset <- function(){
+  my.test.d <- myPERSON
+  for(i in 1:nrow(my.test.d)){
+    k <- 1
+    my.d.f <- 0
+    for(j in 112:134){
+      if(my.test.d[i, j] == 1){
+        my.d.f[k] <- j
+        k <- k+1
+      }
+    }# before changing patient
+    my.test.d$my.vector[i] <- ifelse((my.test.d[i,"cancer_per_patient"]==1 | my.test.d[i,"cancer_per_patient"]==0), 
+                                     my.d.f[1], sample(my.d.f, 1)) 
+  }
+  # replaces all the other cancer types with zero and put '1' in the type of cancer that is same as in the
+  # variable 'my.vector':
+  
+  for(ii in 1:nrow(my.test.d)){
+    for(jj in 112:134){
+      my.test.d[ii,jj] <- ifelse(my.test.d$my.vector[ii] == jj, 1, 0)
+    }
+  }
+  return(my.test.d)
+}
+
+write_imp.datasets <- function(x){
+  dataset_name <- 0 
+  # keep the names of the csv files you want to save in the imputed datasets:
+  for(i in 1:x){
+    name <- "imp.dataset_"
+    dataset_name[i] <- paste0(name, i)
+  }
+  
+  # create a list with size equal to the mnumber of times you want to impute   
+  dataset <- vector("list", length = x)
+  for(i in 1:length(dataset)){
+    dataset[[i]] <- imp.dataset()
+    
+    # if you want to write the elements of this list in separated csv files, then run:
+    # write.csv(dataset[[i]], file = paste0(dataset_name[i], '.csv'))
+  }
+}
+
+
+# Apply a simple Cox model in each of the datasets:
+
+read_csv_return_cox_summary <- function(x){
+  mymodel_list <- vector("list", length = x)
+  for(i in 1:x){
+    mymodel <- 0
+    mydataset <- read.csv(paste0("imp.dataset_", i, '.csv'))
+       
+    mymodel <- coxph(Surv(survdays, death) ~ as.factor(exposure_stage) + 
+                       myage +
+                       to_race_gprd +
+                       regiongr2, data = cancer.d)
+    
+    mymodel_list[[i]] <- summary(mymodel)
+  }
+  return(mymodel_list)
+}
+
+library(survival)
+
+# define the datasets number
+datasets_num <- 5
+
+# call functions
+write_imp.datasets(datasets_num)
+
+# keep the summary in a list (here a)
+a <- read_csv_return_cox_summary(datasets_num)
